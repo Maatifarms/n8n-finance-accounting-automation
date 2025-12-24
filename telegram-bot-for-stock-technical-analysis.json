@@ -1,0 +1,789 @@
+{
+    "name": "Technical Analyst - Template",
+    "nodes": [
+        {
+            "parameters": {
+                "sessionIdType": "customKey",
+                "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+            },
+            "type": "@n8n\/n8n-nodes-langchain.memoryBufferWindow",
+            "typeVersion": 1.3000000000000000444089209850062616169452667236328125,
+            "position": [
+                1160,
+                400
+            ],
+            "id": "2d2121e4-30ce-4861-83d8-fad3d20aa269",
+            "name": "Window Buffer Memory"
+        },
+        {
+            "parameters": {
+                "name": "getChart",
+                "description": "Call this tool to get an analysis of a requested stock. The URL that is output from this tool must be returned in markdown format. For example, ![](url)",
+                "workflowId": {
+                    "__rl": true,
+                    "value": "otLTaypumGeA8ZVH",
+                    "mode": "list",
+                    "cachedResultName": "Technical Analyst - 2 copy"
+                },
+                "workflowInputs": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "ticker": "={{ \/*n8n-auto-generated-fromAI-override*\/ $fromAI('ticker', ``, 'string') }}",
+                        "interval": "={{ \/*n8n-auto-generated-fromAI-override*\/ $fromAI('interval', ``, 'string') }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "ticker",
+                            "displayName": "ticker",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "canBeUsedToMatch": true,
+                            "type": "string"
+                        },
+                        {
+                            "id": "interval",
+                            "displayName": "interval",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "canBeUsedToMatch": true,
+                            "type": "string"
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                }
+            },
+            "type": "@n8n\/n8n-nodes-langchain.toolWorkflow",
+            "typeVersion": 2,
+            "position": [
+                1340,
+                400
+            ],
+            "id": "5c3c27b0-9a53-4b2e-8b91-a7fb8b2e24cf",
+            "name": "Get Chart",
+            "notesInFlow": false
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.text }}",
+                "options": {
+                    "systemMessage": "=# 🚫 IMPORTANT: Topic Guard Clause\nBefore responding, ALWAYS check if the user's message is related to **financial markets**, **stocks**, or **technical analysis**.\n\nIf the message is unrelated (e.g. about websites, programming, weather, or life advice), respond with:\n\n> “I'm currently focused on financial and stock market topics. Feel free to ask me about a company, chart analysis, or a financial concept!”\n\nNever attempt to answer questions outside of this domain.\n\nYou are a specialized AI agent trained only to handle financial topics and stock market queries. Politely decline to answer if the topic is outside this domain.\n\n\n## Context  \n- The agent is designed to analyze and discuss financial markets, providing insights on stocks and related topics.  \n- Use the **GetChart** tool for technical analysis when a stock ticker is provided.  \n- Ensure conversations are both professional and approachable, avoiding overly complex jargon unless specifically requested by the user.  \n- The agent should never give explicit financial advice (e.g., \"buy\" or \"sell\" recommendations).  \n\n## Instructions  \n1. Greet the user in a friendly and professional manner.  \n2. Engage in a conversational tone while discussing financial or stock-related topics.  \n3. If the user provides a stock ticker and requests technical analysis:\n   - Extract the stock ticker (e.g., `NSE:HDFC`, `BSE:TATAMOTORS`) and the requested chart interval (e.g., `1D`, `5 minutes`).\n   - If the interval is not specified, default to `1W`.\n   - If no exchange prefix is included (e.g., just \"HDFC\"), assume `NSE:` for well-known Indian stocks.\n   - Pass both the `ticker` and `interval` to the **GetChart** tool.\n   - Display the chart URL using markdown format (e.g., `![](chart_url)`).\n   - Provide insights or analysis based on the chart in clear, conversational language.\n4. When discussing financial topics, provide detailed yet accessible explanations tailored to the user's level of understanding.  \n5. Avoid offering explicit financial advice or making speculative claims.  \n\n## Tools  \n- **GetChart**: Used for generating stock graphs based on provided tickers and intervals.\n\n## Examples  \n\n### Example 1: General Stock Discussion  \n**User Input:** \"What do you think about Tesla's performance this year?\"  \n**Agent Output:**  \n\"Tesla has had an interesting year with significant market fluctuations. Its stock performance has been influenced by factors such as EV adoption, competition, and broader market trends. Would you like a technical analysis of its stock performance?\"  \n\n### Example 2: Technical Analysis Request (U.S. stock)  \n**User Input:** \"Can you analyze AAPL for me?\"  \n**Agent Output:**  \n\"Sure! I’ve analyzed AAPL for you. The chart indicates strong upward momentum over the last quarter, with resistance around $175 and support near $150. Let me know if you'd like more details or a deeper dive into specific patterns!\"  \n\n### Example 3: Technical Analysis Request (Indian stock with interval)  \n**User Input:** \"Do a technical analysis of NSE:HDFC based on 1D chart\"  \n**Agent Output:**  \n\"Here’s the 1-day chart for HDFC on the NSE. The recent price action shows consolidation above support, and MACD suggests bullish momentum. ![](chart_url)\"\n\n### Example 4: No Interval or Exchange Specified  \n**User Input:** \"Analyze RELIANCE\"  \n**Agent Output:**  \n\"Sure! Here's the weekly chart for RELIANCE, assumed to be listed on NSE. Let me know if you'd like a different time frame or more detail. ![](chart_url)\"\n\n### Example 5: Financial Concepts Explanation  \n**User Input:** \"Can you explain what P\/E ratio means?\"  \n**Agent Output:**  \n\"Of course! The Price-to-Earnings (P\/E) ratio is a metric used to evaluate whether a stock is overvalued or undervalued. It’s calculated by dividing the stock’s current price by its earnings per share (EPS). A high P\/E might indicate that a stock is overpriced, while a low P\/E could suggest it’s undervalued. Let me know if you’d like to explore this further!\"  \n\n## SOP (Standard Operating Procedure)  \n1. **Engage with the user:** Respond professionally and in a friendly tone.  \n2. **Analyze stocks:**  \n   - Extract both `ticker` and `interval` from user input. Default to `1W` if interval not provided.  \n   - Normalize ticker format (e.g., default to `NSE:` for common Indian stocks without an exchange prefix).  \n   - Pass both values to **GetChart** and provide insights from the resulting chart.\n3. **Explain financial concepts:** Break down complex terms into simple, digestible explanations tailored to the user’s expertise.  \n4. **Avoid financial advice:** Provide information and analysis without suggesting actions.  \n5. **Confirm user needs:** Ensure clarity by asking follow-up questions if necessary.  \n\n## Final Notes  \n- Always maintain a balance between professionalism and approachability.  \n- Use the **GetChart** tool effectively, ensuring accurate and clear analysis results.  \n- Avoid making financial predictions or recommendations. Focus on educating and informing the user.  \n---\n"
+                }
+            },
+            "type": "@n8n\/n8n-nodes-langchain.agent",
+            "typeVersion": 1.6999999999999999555910790149937383830547332763671875,
+            "position": [
+                1060,
+                180
+            ],
+            "id": "7faeb8b3-ef1c-47bd-ba38-327f1a27d8a4",
+            "name": "AI Agent"
+        },
+        {
+            "parameters": {
+                "updates": [
+                    "message"
+                ],
+                "additionalFields": []
+            },
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1.100000000000000088817841970012523233890533447265625,
+            "position": [
+                140,
+                180
+            ],
+            "id": "ae3a3ea6-f81d-4aa6-a6d2-3f48f898106f",
+            "name": "Telegram Trigger",
+            "webhookId": "9bee9c7d-f9a7-4db1-8b03-f3222a031486"
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+                "text": "={{ $json.output }}",
+                "additionalFields": {
+                    "appendAttribution": false
+                }
+            },
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.1999999999999999555910790149937383830547332763671875,
+            "position": [
+                1460,
+                180
+            ],
+            "id": "b0c62479-1322-40db-8ca3-2e976cb4cb31",
+            "name": "Send Analysis",
+            "webhookId": "509a23fe-aeda-4d83-aac0-3bcb807c98cf"
+        },
+        {
+            "parameters": {
+                "content": "## AI Agent\n",
+                "height": 600,
+                "width": 1840,
+                "color": 4
+            },
+            "type": "n8n-nodes-base.stickyNote",
+            "position": [
+                -20,
+                0
+            ],
+            "typeVersion": 1,
+            "id": "e75f3921-a847-41a3-a11c-2ce7c54f20e8",
+            "name": "Sticky Note"
+        },
+        {
+            "parameters": {
+                "content": "## Get Chart & Technical Analysis Workflow",
+                "height": 480,
+                "width": 2480
+            },
+            "type": "n8n-nodes-base.stickyNote",
+            "position": [
+                -200,
+                680
+            ],
+            "typeVersion": 1,
+            "id": "28b39fa2-6b06-4dcf-b816-e1896d5ddbde",
+            "name": "Sticky Note1"
+        },
+        {
+            "parameters": {
+                "workflowInputs": {
+                    "values": [
+                        {
+                            "name": "ticker"
+                        },
+                        {
+                            "name": "interval"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.executeWorkflowTrigger",
+            "typeVersion": 1.100000000000000088817841970012523233890533447265625,
+            "position": [
+                0,
+                920
+            ],
+            "id": "ca771b02-c24e-48f4-8078-41d72bfbff85",
+            "name": "Workflow Input Trigger"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "fdf7e016-7082-4146-9038-454139023990",
+                            "name": "response",
+                            "value": "={{ $('Technical Analysis').item.json.choices[0].message.content }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": []
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.399999999999999911182158029987476766109466552734375,
+            "position": [
+                2040,
+                920
+            ],
+            "id": "7fa90dcc-41c7-4489-801e-54b651ca8403",
+            "name": "response"
+        },
+        {
+            "parameters": {
+                "resource": "image",
+                "operation": "analyze",
+                "modelId": {
+                    "__rl": true,
+                    "value": "gpt-4o",
+                    "mode": "list",
+                    "cachedResultName": "GPT-4O"
+                },
+                "text": "=# Role\nYou are an expert financial analyst specializing in the technical analysis of stock charts. Your task is to examine chart images and provide a comprehensive, structured markdown report.\n\nYou must **always include ALL 7 sections**, even if no signals are visible. Clearly state \"No significant observations\" when applicable.\n\n---\n\n## 1. **Candlestick Analysis**\n- Identify any candlestick patterns (e.g. engulfing, doji, hammer).\n- Describe the overall trend (bullish, bearish, sideways).\n- Mention any breakout or pullback zones.\n\n## 2. **MACD Analysis**\n- Compare the MACD and Signal lines (e.g. crossover).\n- Analyze the histogram for strength\/direction.\n- Highlight any divergences between MACD and price.\n\n## 3. **Volume Analysis**\n- Comment on changes or spikes in volume.\n- How does volume relate to price movement?\n- Any signs of institutional activity?\n\n## 4. **RSI (Relative Strength Index) Examination**\n- Extract and state the current RSI value.\n- Determine if it's overbought, oversold, or neutral.\n- Discuss alignment or divergence with price action.\n\n## 5. **Support and Resistance Levels**\n- Identify key support\/resistance zones on the chart.\n- Mention potential reversal or breakout levels.\n- If not clearly visible, say so.\n\n## 6. **Actionable Insights**\n- Summarize short-term technical implications.\n- Suggest possible buy\/sell\/hold behavior, without giving financial advice.\n- If insights are inconclusive, clearly state it.\n\n## 7. **Other Observations**\n- Mention any extra indicators, patterns, or sentiment clues.\n- Note external factors or unusual chart behavior.\n\n---\n\nBe concise but thorough. Use `###` markdown headers for each section. Do **not skip any section**, even if no data is found — just explain that.\n",
+                "inputType": "base64",
+                "simplify": false,
+                "options": {
+                    "detail": "auto"
+                }
+            },
+            "type": "@n8n\/n8n-nodes-langchain.openAi",
+            "typeVersion": 1.8000000000000000444089209850062616169452667236328125,
+            "position": [
+                1600,
+                920
+            ],
+            "id": "ceadfd03-12fb-4820-ab71-147e5ed8236b",
+            "name": "Technical Analysis",
+            "credentials": {
+                "openAiApi": {
+                    "id": "H6HItiKoL8S1Atdy",
+                    "name": "n8n free OpenAI API credits"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.url }}",
+                "options": []
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.20000000000000017763568394002504646778106689453125,
+            "position": [
+                1380,
+                920
+            ],
+            "id": "7ed033c7-464a-4a17-8fab-5d8798d3d9e1",
+            "name": "Download Chart"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https:\/\/api.chart-img.com\/v2\/tradingview\/advanced-chart\/storage",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "x-api-key",
+                            "value": "Enter Your API Key Here"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application\/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"theme\": \"dark\",\n  \"interval\": \"{{ $('Parse Interval').item.json.interval }}\",\n  \"symbol\": \"{{ $('Parse Interval').item.json.ticker }}\",\n  \"override\": {\n    \"showStudyLastValue\": false\n  },\n  \"studies\": [\n    {\n      \"name\": \"Volume\",\n      \"forceOverlay\": true\n    },\n    {\n      \"name\": \"Relative Strength Index\"\n    },\n    {\n      \"name\": \"MACD\",\n      \"override\": {\n        \"Signal.linewidth\": 2,\n        \"Signal.color\": \"rgb(255,65,129)\"\n      }\n    }\n  ]\n}\n",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.20000000000000017763568394002504646778106689453125,
+            "position": [
+                1160,
+                920
+            ],
+            "id": "1cd20a56-520b-477e-a6d0-338aed1c6e2a",
+            "name": "Get Chart URL"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "cf5f7210-5b54-4f4a-abf7-87873be82df4",
+                            "name": "ticker",
+                            "value": "={\n  \"ticker\": \"={{ $json.ticker }}\",\n  \"interval\": \"={{ $json.interval }}\",\n  \"symbolUsed\": \"={{ $('Parse Interval').item.json.ticker }}\"\n}\n",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": []
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.399999999999999911182158029987476766109466552734375,
+            "position": [
+                940,
+                920
+            ],
+            "id": "8faf6ca1-124f-4642-a575-afdbd4cb1f93",
+            "name": "Set Ticker"
+        },
+        {
+            "parameters": {
+                "operation": "sendPhoto",
+                "chatId": "Enter your Chat ID here",
+                "file": "={{ $('Get Chart URL').item.json.url }}",
+                "additionalFields": []
+            },
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.1999999999999999555910790149937383830547332763671875,
+            "position": [
+                1820,
+                920
+            ],
+            "id": "3019146a-ddcb-4925-bd1e-06203fa02b54",
+            "name": "Send Chart",
+            "webhookId": "946f87b5-ca13-41d7-8b27-ba7c44571b49"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "value": "gpt-4o",
+                    "mode": "list",
+                    "cachedResultName": "gpt-4o"
+                },
+                "options": []
+            },
+            "type": "@n8n\/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.1999999999999999555910790149937383830547332763671875,
+            "position": [
+                980,
+                400
+            ],
+            "id": "09977374-8cab-4524-b140-78ecd99716e4",
+            "name": "OpenAI Chat Model",
+            "credentials": {
+                "openAiApi": {
+                    "id": "H6HItiKoL8S1Atdy",
+                    "name": "n8n free OpenAI API credits"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "\/\/ STEP 1: Get user input\nconst userTicker = $json.ticker?.toUpperCase() || \"RELIANCE\";\nconst rawInterval = ($json.interval || \"\").toUpperCase();\n\n\/\/ STEP 2: Normalize interval (natural input to ChartIMG codes)\nlet interval = \"1W\";\nconst normalized = rawInterval.replace(\/[^A-Z0-9 ]\/gi, \"\").toLowerCase();\nif (normalized.includes(\"1d\") || normalized.includes(\"daily\")) interval = \"1D\";\nelse if (normalized.includes(\"1w\") || normalized.includes(\"weekly\")) interval = \"1W\";\nelse if (normalized.includes(\"1m\") || normalized.includes(\"monthly\") || normalized.includes(\"1 month\")) interval = \"1M\";\nelse if (normalized.includes(\"3m\") || normalized.includes(\"quarter\")) interval = \"3M\";\nelse if (normalized.includes(\"6m\") || normalized.includes(\"half year\")) interval = \"6M\";\nelse if (normalized.includes(\"1y\") || normalized.includes(\"1 year\") || normalized.includes(\"yearly\")) interval = \"1Y\";\nelse if (normalized.includes(\"5m\")) interval = \"5\";\nelse if (normalized.includes(\"15m\")) interval = \"15\";\nelse if (normalized.includes(\"30m\")) interval = \"30\";\nelse if (normalized.includes(\"1h\") || normalized.includes(\"hourly\") || normalized.includes(\"60\")) interval = \"60\";\n\n\/\/ STEP 3: Shortcut — if ticker includes exchange (like NSE: or NASDAQ:), skip lookup\nif (userTicker.includes(\":\")) {\n  return [{ json: { ticker: userTicker, interval } }];\n}\n\n\/\/ STEP 4: Try getting lookup result (from API response, optional)\nconst match = Array.isArray($json.data) && $json.data.length > 0 ? $json.data[0] : null;\nconst symbol = match?.symbol?.toUpperCase() || userTicker;\nconst exchange = match?.exchange?.toUpperCase() || \"NSE\";\n\nlet prefix = \"NSE\";\nif (exchange.includes(\"NASDAQ\")) prefix = \"NASDAQ\";\nelse if (exchange.includes(\"NSE\")) prefix = \"NSE\";\n\n\/\/ STEP 5: Final TradingView-ready ticker\nconst ticker = `${prefix}:${symbol}`;\nreturn [{ json: { ticker, interval } }];\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                720,
+                920
+            ],
+            "id": "1f7fcc95-5339-4d64-aa8e-e2466b0bd67e",
+            "name": "Parse Interval"
+        },
+        {
+            "parameters": {
+                "resource": "audio",
+                "operation": "transcribe",
+                "options": []
+            },
+            "id": "ae3fa3f0-8525-45ed-a93d-5e38fd445f73",
+            "name": "Transcribe",
+            "type": "@n8n\/n8n-nodes-langchain.openAi",
+            "position": [
+                800,
+                80
+            ],
+            "typeVersion": 1.600000000000000088817841970012523233890533447265625,
+            "credentials": {
+                "openAiApi": {
+                    "id": "H6HItiKoL8S1Atdy",
+                    "name": "n8n free OpenAI API credits"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "file",
+                "fileId": "={{ $json.message.voice.file_id }}"
+            },
+            "id": "e9e6cb8c-e05a-4f70-8f02-74915d15086e",
+            "name": "Download File",
+            "type": "n8n-nodes-base.telegram",
+            "position": [
+                580,
+                80
+            ],
+            "webhookId": "83bb7385-33f6-4105-8294-1a91c0ebbee5",
+            "typeVersion": 1.1999999999999999555910790149937383830547332763671875
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "fe7ecc99-e1e8-4a5e-bdd6-6fce9757b234",
+                            "name": "text",
+                            "type": "string",
+                            "value": "={{ $json.message.text }}"
+                        }
+                    ]
+                },
+                "options": []
+            },
+            "id": "aa034306-272a-43ce-98e5-c178ae7587dc",
+            "name": "Set Text",
+            "type": "n8n-nodes-base.set",
+            "position": [
+                700,
+                280
+            ],
+            "typeVersion": 3.399999999999999911182158029987476766109466552734375
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "version": 2,
+                                    "leftValue": "",
+                                    "caseSensitive": true,
+                                    "typeValidation": "strict"
+                                },
+                                "combinator": "and",
+                                "conditions": [
+                                    {
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "exists",
+                                            "singleValue": true
+                                        },
+                                        "leftValue": "={{ $json.message.voice.file_id }}",
+                                        "rightValue": ""
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Voice"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "version": 2,
+                                    "leftValue": "",
+                                    "caseSensitive": true,
+                                    "typeValidation": "strict"
+                                },
+                                "combinator": "and",
+                                "conditions": [
+                                    {
+                                        "id": "8c844924-b2ed-48b0-935c-c66a8fd0c778",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "exists",
+                                            "singleValue": true
+                                        },
+                                        "leftValue": "={{ $json.message.text }}",
+                                        "rightValue": ""
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Text"
+                        }
+                    ]
+                },
+                "options": []
+            },
+            "id": "cc3d6b2f-5bbd-4463-ada9-65571de42159",
+            "name": "Switch",
+            "type": "n8n-nodes-base.switch",
+            "position": [
+                360,
+                180
+            ],
+            "typeVersion": 3.20000000000000017763568394002504646778106689453125
+        },
+        {
+            "parameters": {
+                "url": "=https:\/\/api.twelvedata.com\/symbol_search?symbol={{$json.ticker}}&apikey=paste your key here",
+                "options": []
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.20000000000000017763568394002504646778106689453125,
+            "position": [
+                500,
+                760
+            ],
+            "id": "05ea0942-9b2e-4eca-b69f-84f1752165ff",
+            "name": "Lookup Exchange"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "version": 2,
+                                    "leftValue": "",
+                                    "caseSensitive": true,
+                                    "typeValidation": "strict"
+                                },
+                                "conditions": [
+                                    {
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "notContains"
+                                        },
+                                        "leftValue": "={{ $json.ticker }}",
+                                        "rightValue": ":",
+                                        "id": "911403e4-c20a-4187-b189-b410554316ad"
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Output 0 (True)"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 2
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "cc8dfacb-87ea-4609-ac9a-6ecaa510b2a3",
+                                        "leftValue": "",
+                                        "rightValue": "",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals",
+                                            "name": "filter.operator.equals"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Output 1 (False)\t"
+                        }
+                    ]
+                },
+                "options": []
+            },
+            "id": "7742f01a-0541-41e0-9256-4f76d99dbae1",
+            "name": "Check Ticker Format",
+            "type": "n8n-nodes-base.switch",
+            "position": [
+                280,
+                920
+            ],
+            "typeVersion": 3.20000000000000017763568394002504646778106689453125
+        }
+    ],
+    "pinData": [],
+    "connections": {
+        "Window Buffer Memory": {
+            "ai_memory": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_memory",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Chart": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Send Analysis",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Telegram Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Workflow Input Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Check Ticker Format",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Technical Analysis": {
+            "main": [
+                [
+                    {
+                        "node": "Send Chart",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Download Chart": {
+            "main": [
+                [
+                    {
+                        "node": "Technical Analysis",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Chart URL": {
+            "main": [
+                [
+                    {
+                        "node": "Download Chart",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Ticker": {
+            "main": [
+                [
+                    {
+                        "node": "Get Chart URL",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send Chart": {
+            "main": [
+                [
+                    {
+                        "node": "response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Interval": {
+            "main": [
+                [
+                    {
+                        "node": "Set Ticker",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Download File": {
+            "main": [
+                [
+                    {
+                        "node": "Transcribe",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Transcribe": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch": {
+            "main": [
+                [
+                    {
+                        "node": "Download File",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Set Text",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Text": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Lookup Exchange": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Interval",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Ticker Format": {
+            "main": [
+                [
+                    {
+                        "node": "Lookup Exchange",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Parse Interval",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "d6413c60-e979-48d6-b7ff-0990c3bb6b96",
+    "meta": {
+        "instanceId": "730a76566aab33e091ce424c1fbb16f65675f73b756fd18d9b3759d7d1896f6e"
+    },
+    "id": "4cnRhPvOjewSfLDa",
+    "tags": []
+}
