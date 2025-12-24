@@ -1,0 +1,807 @@
+{
+    "name": "Accounting AI Agent",
+    "nodes": [
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyMinute"
+                        }
+                    ]
+                },
+                "simple": false,
+                "filters": [],
+                "options": {
+                    "downloadAttachments": true
+                }
+            },
+            "type": "n8n-nodes-base.gmailTrigger",
+            "typeVersion": 1.3000000000000000444089209850062616169452667236328125,
+            "position": [
+                -480,
+                16
+            ],
+            "id": "e5ced251-4aaf-42b0-b961-b24a8922e409",
+            "name": "Gmail Trigger"
+        },
+        {
+            "parameters": {
+                "options": []
+            },
+            "type": "n8n-nodes-base.mistralAi",
+            "typeVersion": 1,
+            "position": [
+                432,
+                0
+            ],
+            "id": "e4293189-d6de-45df-b9b6-f605e9bdb7db",
+            "name": "Extract text"
+        },
+        {
+            "parameters": {
+                "inputText": "=Extracted Document: {{ $json.extractedText || ' ' }}\nEmail Subject: {{ $('Gmail Trigger').item.json.subject }}\nEmail Body: {{ $('Gmail Trigger').item.json.text }}\nfrom: {{ $('Gmail Trigger').item.json.from.text }}",
+                "categories": {
+                    "categories": [
+                        {
+                            "category": "Transaction Email",
+                            "description": "This is an email containing transaction details"
+                        },
+                        {
+                            "category": "Other Email",
+                            "description": "This is an email that doesn't contain transaction details"
+                        }
+                    ]
+                },
+                "options": []
+            },
+            "type": "@n8n\/n8n-nodes-langchain.textClassifier",
+            "typeVersion": 1.100000000000000088817841970012523233890533447265625,
+            "position": [
+                -448,
+                336
+            ],
+            "id": "c079ce03-10f6-4667-ade8-24352fe8cf96",
+            "name": "Check for Transaction Email"
+        },
+        {
+            "parameters": {
+                "inputText": "=Extracted document: {{ $('Extract text').item.json.extractedText }}\nEmail Subject: {{ $('Gmail Trigger').item.json.subject }}\nEmail Body: {{ $('Gmail Trigger').item.json.text }}\nfrom: {{ $('Gmail Trigger').item.json.from.text }}\nChart of Accounts: {{ $json.data.toJsonString() }}",
+                "categories": {
+                    "categories": [
+                        {
+                            "category": "Expense",
+                            "description": "This is email containing an expense"
+                        },
+                        {
+                            "category": "Income",
+                            "description": "This is email containing an income"
+                        }
+                    ]
+                },
+                "options": {
+                    "systemPromptTemplate": "=### CONTEXT\nYou are a highly accurate text classification engine for an accounting system. Your sole purpose is to analyze a piece of text and determine if it represents money coming IN to the business ('Income') or money going OUT of the business ('Expense').\n\n### RULES\n1.  Analyze the text for keywords, sender, and context.\n2.  \"Income\" keywords include: \"Payment Received\", \"Sale Confirmation\", \"has paid you\", \"deposit\".\n3.  \"Expense\" keywords include: \"Invoice from\", \"Your receipt\", \"Your order\", \"bill\", \"subscription renewal\".\n4.  You MUST respond with a single word: `Income` or `Expense`. Do not add any other text.\n5. My company is Apex Digital Solutions so any invoice from this company is sent to a client and vice versa is expense\n\n### EXAMPLES\n\nText: \"Your invoice from Google for Google Workspace is ready.\"\nClassification: Expense\n\nText: \"Stripe: Payment of £150.00 from customer@email.com succeeded.\"\nClassification: Income\n\nText: \"Receipt for your purchase from Adobe Inc.\"\nClassification: Expense\n\nText: \"Good news! Your invoice #1024 has been paid.\"\nClassification: Income\n\nText: \"CloudScribe AI - Your subscription is scheduled for renewal.\"\nClassification: Expense"
+                }
+            },
+            "type": "@n8n\/n8n-nodes-langchain.textClassifier",
+            "typeVersion": 1.100000000000000088817841970012523233890533447265625,
+            "position": [
+                352,
+                336
+            ],
+            "id": "905eff98-62d4-4e88-8eae-591f1c8e11d9",
+            "name": "Check if it’s revenue or expense"
+        },
+        {
+            "parameters": {
+                "documentId": {
+                    "__rl": true,
+                    "value": "1g0XJLZj71zSris5RzeHJSq2AVqMfsVYaocYlqbKGizU",
+                    "mode": "list",
+                    "cachedResultName": "My Accounts",
+                    "cachedResultUrl": "https:\/\/docs.google.com\/spreadsheets\/d\/1g0XJLZj71zSris5RzeHJSq2AVqMfsVYaocYlqbKGizU\/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 888533224,
+                    "mode": "list",
+                    "cachedResultName": "Chart of Accounts",
+                    "cachedResultUrl": "https:\/\/docs.google.com\/spreadsheets\/d\/1g0XJLZj71zSris5RzeHJSq2AVqMfsVYaocYlqbKGizU\/edit#gid=888533224"
+                },
+                "options": []
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.70000000000000017763568394002504646778106689453125,
+            "position": [
+                -96,
+                336
+            ],
+            "id": "5c380eac-4a10-443b-8a95-493563c72ccb",
+            "name": "Read Chart of Accounts"
+        },
+        {
+            "parameters": {
+                "aggregate": "aggregateAllItemData",
+                "options": []
+            },
+            "type": "n8n-nodes-base.aggregate",
+            "typeVersion": 1,
+            "position": [
+                128,
+                336
+            ],
+            "id": "26df4d16-faf7-4647-868d-b33b7e8dc05e",
+            "name": "Aggregate Categories"
+        },
+        {
+            "parameters": {
+                "jsonSchemaExample": "{\n  \"TransactionID\": \"XYZ123\",\n  \"Date\": \"10\/10\/2025\",\n  \"Description\": \"Subscription Renewal\",\n  \"Amount\": \"140.00\",\n  \"Currency\": \"₹\",\n  \"Comment\": \"Monthly Adobe subscription\"\n}\n"
+            },
+            "type": "@n8n\/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.3000000000000000444089209850062616169452667236328125,
+            "position": [
+                896,
+                256
+            ],
+            "id": "4bdc6e61-e00b-47a8-bfff-685743cb2212",
+            "name": "Structured Output Parser"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=Chart of accounts:  {{ JSON.stringify($('Aggregate Categories').item.json.data) }}\nExtracted document: {{ $('Extract text').item.json.extractedText }}\nEmail Subject: {{ $('Gmail Trigger').item.json.subject }}\nEmail Body: {{ $('Gmail Trigger').item.json.text }}\nfrom: {{ $('Gmail Trigger').item.json.from.text }}\n",
+                "hasOutputParser": true,
+                "options": {
+                    "systemMessage": "==You are a helpful expense assistant in charge of extracting key information from expense transactions.\n\n# TASK\nExtract the following information from the provided email and document content:\n- TransactionID\n- Date (Use format DD\/MM\/YYYY)\n- Description (Type of transaction)\n- Amount (numeric only, no symbols)\n- Currency (symbol like $, ₹, €, £, etc. based on the invoice or email)\n- Comment (extra details if available)\n\n# Output in this format\n{\n  \"TransactionID\": \"XYZ123\",\n  \"Date\": \"10\/10\/2025\",\n  \"Description\": \"Subscription Renewal\",\n  \"Amount\": \"140.00\",\n  \"Currency\": \"₹\",\n  \"Comment\": \"Monthly Adobe subscription\"\n}\n"
+                }
+            },
+            "type": "@n8n\/n8n-nodes-langchain.agent",
+            "typeVersion": 2.20000000000000017763568394002504646778106689453125,
+            "position": [
+                704,
+                32
+            ],
+            "id": "f38099d0-451d-4d22-a3f7-a69ccd982021",
+            "name": "Expense AI Agent"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1g0XJLZj71zSris5RzeHJSq2AVqMfsVYaocYlqbKGizU",
+                    "mode": "list",
+                    "cachedResultName": "My Accounts",
+                    "cachedResultUrl": "https:\/\/docs.google.com\/spreadsheets\/d\/1g0XJLZj71zSris5RzeHJSq2AVqMfsVYaocYlqbKGizU\/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Transactions",
+                    "cachedResultUrl": "https:\/\/docs.google.com\/spreadsheets\/d\/1blMSrOOz3fJBfP-YfsBnSuC0i60eEBXgoyEZ-URC0K0\/edit#gid=0"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "TransactionID": "={{ $('Expense AI Agent').item.json.output.TransactionID }}",
+                        "Date": "={{ $('Expense AI Agent').item.json.output.Date }}",
+                        "Description": "={{ $json.output.Comment }}",
+                        "Type": "Expense",
+                        "Amount ": "=\"-{{ $('Expense AI Agent').item.json.output.Currency + $('Expense AI Agent').item.json.output.Amount }}\"",
+                        "Invoice Link": "={{ $('Upload file').item.json.webViewLink }}",
+                        "Category": "={{ $json.output.Description }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "TransactionID",
+                            "displayName": "TransactionID",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Date",
+                            "displayName": "Date",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Type",
+                            "displayName": "Type",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Category",
+                            "displayName": "Category",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Invoice Link",
+                            "displayName": "Invoice Link",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Amount ",
+                            "displayName": "Amount ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Description",
+                            "displayName": "Description",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": []
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.70000000000000017763568394002504646778106689453125,
+            "position": [
+                1056,
+                144
+            ],
+            "id": "0a1cf42f-b7f9-4b2f-82df-172a29cc4788",
+            "name": "Add Expense to Transactions Sheet"
+        },
+        {
+            "parameters": {
+                "inputDataFieldName": "attachment_0",
+                "name": "attachment_0",
+                "driveId": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "My Drive"
+                },
+                "folderId": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "root",
+                    "cachedResultName": "\/ (Root folder)"
+                },
+                "options": []
+            },
+            "type": "n8n-nodes-base.googleDrive",
+            "typeVersion": 3,
+            "position": [
+                0,
+                0
+            ],
+            "id": "459675a6-2725-4a39-93e0-23eeffba2904",
+            "name": "Upload file"
+        },
+        {
+            "parameters": {
+                "operation": "download",
+                "fileId": {
+                    "__rl": true,
+                    "value": "={{ $json.id }}",
+                    "mode": "id"
+                },
+                "options": []
+            },
+            "type": "n8n-nodes-base.googleDrive",
+            "typeVersion": 3,
+            "position": [
+                208,
+                0
+            ],
+            "id": "c58027fa-cd66-45f3-a398-88ac403d17e5",
+            "name": "Download file"
+        },
+        {
+            "parameters": {
+                "jsonSchemaExample": "{\n  \"TransactionID\": \"ABC456\",\n  \"Date\": \"10\/10\/2025\",\n  \"Description\": \"Stripe Payment\",\n  \"Amount\": \"150.00\",\n  \"Currency\": \"$\",\n  \"Comment\": \"Stripe payment from John\"\n}\n"
+            },
+            "type": "@n8n\/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.3000000000000000444089209850062616169452667236328125,
+            "position": [
+                864,
+                752
+            ],
+            "id": "3688e35f-3c3d-496f-8708-60de8fcfd998",
+            "name": "Structured Output Parser1"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=Chart of accounts:  {{ JSON.stringify($('Aggregate Categories').item.json.data) }}\nExtracted document: {{ $('Extract text').item.json.extractedText }}\nEmail Subject: {{ $('Gmail Trigger').item.json.subject }}\nEmail Body: {{ $('Gmail Trigger').item.json.text }}\nfrom: {{ $('Gmail Trigger').item.json.from.text }}\n",
+                "hasOutputParser": true,
+                "options": {
+                    "systemMessage": "==You are a helpful assistant in charge of extracting key information from income transactions.\n\n# TASK\nExtract the following information from the provided email and document content:\n- TransactionID\n- Date (Use format DD\/MM\/YYYY)\n- Description (Type of transaction)\n- Amount (numeric only, no symbols)\n- Currency (symbol like $, ₹, €, £, etc. based on the invoice or email)\n- Comment (extra details if available)\n\n# Output in this format\n{\n  \"TransactionID\": \"ABC456\",\n  \"Date\": \"10\/10\/2025\",\n  \"Description\": \"Stripe Payment\",\n  \"Amount\": \"150.00\",\n  \"Currency\": \"$\",\n  \"Comment\": \"Stripe payment from John\"\n}\n"
+                }
+            },
+            "type": "@n8n\/n8n-nodes-langchain.agent",
+            "typeVersion": 2.20000000000000017763568394002504646778106689453125,
+            "position": [
+                704,
+                544
+            ],
+            "id": "2fec5dd1-e386-48d5-abb5-742d255677a3",
+            "name": "Income AI Agent"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1g0XJLZj71zSris5RzeHJSq2AVqMfsVYaocYlqbKGizU",
+                    "mode": "list",
+                    "cachedResultName": "My Accounts",
+                    "cachedResultUrl": "https:\/\/docs.google.com\/spreadsheets\/d\/1g0XJLZj71zSris5RzeHJSq2AVqMfsVYaocYlqbKGizU\/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Transactions",
+                    "cachedResultUrl": "https:\/\/docs.google.com\/spreadsheets\/d\/1blMSrOOz3fJBfP-YfsBnSuC0i60eEBXgoyEZ-URC0K0\/edit#gid=0"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "TransactionID": "={{ $('Income AI Agent').item.json.output.TransactionID }}",
+                        "Date": "={{ $('Income AI Agent').item.json.output.Date }}",
+                        "Description": "={{ $json.output.Comment }}",
+                        "Type": "Income",
+                        "Amount ": "=\"{{ $('Income AI Agent').item.json.output.Currency + $('Income AI Agent').item.json.output.Amount }}\"",
+                        "Invoice Link": "={{ $('Upload file').item.json.webViewLink }}",
+                        "Category": "={{ $('Income AI Agent').item.json.output.Description }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "TransactionID",
+                            "displayName": "TransactionID",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Date",
+                            "displayName": "Date",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Type",
+                            "displayName": "Type",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Category",
+                            "displayName": "Category",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Invoice Link",
+                            "displayName": "Invoice Link",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Amount ",
+                            "displayName": "Amount ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Description",
+                            "displayName": "Description",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": []
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.70000000000000017763568394002504646778106689453125,
+            "position": [
+                1072,
+                544
+            ],
+            "id": "aab4bb92-77ab-4e2f-8a12-6d6592e7590d",
+            "name": "Add Income to Transactions Sheet"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 2
+                    },
+                    "conditions": [
+                        {
+                            "id": "b17719ba-b4dc-46fd-ae1c-7f25dc178263",
+                            "leftValue": "={{ $binary && Object.keys($binary).length > 0 }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "true",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": []
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.20000000000000017763568394002504646778106689453125,
+            "position": [
+                -240,
+                16
+            ],
+            "id": "ab69c768-03dc-4b66-b89e-f57e0a09fdb2",
+            "name": "If Email Contains Document"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "gpt-4.1-mini"
+                },
+                "options": []
+            },
+            "type": "@n8n\/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.1999999999999999555910790149937383830547332763671875,
+            "position": [
+                -400,
+                528
+            ],
+            "id": "bd2a7dc2-25ba-4943-a6e7-71cbfe2badef",
+            "name": "OpenAI Chat Model"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "gpt-4.1-mini"
+                },
+                "options": []
+            },
+            "type": "@n8n\/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.1999999999999999555910790149937383830547332763671875,
+            "position": [
+                416,
+                512
+            ],
+            "id": "099ddde5-661e-4e5d-a9ff-724a45ca8f9d",
+            "name": "OpenAI Chat Model1"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "gpt-4.1-mini"
+                },
+                "options": []
+            },
+            "type": "@n8n\/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.1999999999999999555910790149937383830547332763671875,
+            "position": [
+                688,
+                256
+            ],
+            "id": "4bd3e201-6a0e-4256-9d38-6402102fcab4",
+            "name": "OpenAI Chat Model2"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "gpt-4.1-mini"
+                },
+                "options": []
+            },
+            "type": "@n8n\/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.1999999999999999555910790149937383830547332763671875,
+            "position": [
+                688,
+                752
+            ],
+            "id": "295e05ff-a9ec-4342-85b0-e62865c1b5b8",
+            "name": "OpenAI Chat Model3"
+        }
+    ],
+    "pinData": [],
+    "connections": {
+        "Gmail Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "If Email Contains Document",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract text": {
+            "main": [
+                [
+                    {
+                        "node": "Check for Transaction Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check for Transaction Email": {
+            "main": [
+                [
+                    {
+                        "node": "Read Chart of Accounts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read Chart of Accounts": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate Categories",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate Categories": {
+            "main": [
+                [
+                    {
+                        "node": "Check if it’s revenue or expense",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check if it’s revenue or expense": {
+            "main": [
+                [
+                    {
+                        "node": "Expense AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Income AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Structured Output Parser": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "Expense AI Agent",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Expense AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Add Expense to Transactions Sheet",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Upload file": {
+            "main": [
+                [
+                    {
+                        "node": "Download file",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Download file": {
+            "main": [
+                [
+                    {
+                        "node": "Extract text",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Structured Output Parser1": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "Income AI Agent",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Income AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Add Income to Transactions Sheet",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Email Contains Document": {
+            "main": [
+                [
+                    {
+                        "node": "Upload file",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Check for Transaction Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Check for Transaction Email",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model1": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Check if it’s revenue or expense",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model2": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Expense AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model3": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Income AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "7f8224d3-11d6-4d98-8ae9-17683427a953",
+    "meta": {
+        "instanceId": "b030d577852875aee4e685908e1c77b0ceac09d97d6fd45a48dda60ad5600e4c"
+    },
+    "id": "TnneVS9kxLKqwoeW",
+    "tags": []
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
